@@ -2,26 +2,32 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Grid {
-
-    // TODO: NOTE, it may make more sense to handle neighbors in Grid rather than Cell.
-
-    Map<Position, Cell> cells = new HashMap<>();
+    IRule rule;
+    CellFactory cellFactory;
+    private Cell[][] grid;
     private int MAX_ROWS = 99;
     private int MAX_COLUMNS = 99;
 
-    // Creates a (MAX_X + 1)x(MAX_Y + 1) grid
-    public Grid() {
+
+    public Grid(CellFactory cellFactory, IRule rule) {
+        this.grid = new Cell[MAX_ROWS + 1][MAX_COLUMNS + 1];
+        this.cellFactory = cellFactory;
+        this.rule = rule;
         for (int x = 0; x <= MAX_ROWS; x++) {
             for (int y = 0; y <= MAX_COLUMNS; y++) {
-                Position pos = new Position(x, y);
-                cells.put(pos, new Cell(x, y, State.DEAD));
+                grid[x][y] = cellFactory.createCell(State.DEAD);
             }
         }
     }
 
-    //TODO
     public void updateAllCells () {
-
+        for (int x = 0; x <= MAX_ROWS; x++) {
+            for (int y = 0; y <= MAX_COLUMNS; y++) {
+                Cell cell = grid[x][y];
+                State newState = rule.getNextStateForCell(grid, x, y);
+                cell.updateState(newState);
+            }
+        }
     }
 
     public int getMaxRows() {
