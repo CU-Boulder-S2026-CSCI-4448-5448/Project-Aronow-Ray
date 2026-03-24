@@ -1,5 +1,7 @@
+package automata;
+
 public class CellFactory {
-    public Cell makeCell(State state) {
+    public Cell createCell(State state) {
         return new Cell(state);
     }
 }
