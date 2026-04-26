@@ -1,6 +1,7 @@
 package automata.display;
 
 import automata.*;
+import automata.presets.Shape;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -22,6 +23,8 @@ public class GridPanel extends JPanel implements GridObserver {
     private Tool currentTool = Tool.PAINT;
     private int[] lineStart = null;
     private List<int[]> linePreview = List.of();
+    private Shape activeShape = null;
+    private List<int[]> shapePreview = List.of();
 
     public GridPanel(Grid grid) {
         this(grid, 8);
@@ -60,6 +63,13 @@ public class GridPanel extends JPanel implements GridObserver {
                         lineStart = null;
                         linePreview = List.of();
                     }
+                } else if (currentTool == Tool.SHAPE && activeShape != null) {
+                    // stamp all preview cells onto the grid
+                    for (int[] cell : shapePreview) {
+                        if (grid.isInBounds(cell[0], cell[1])) {
+                            grid.setState(cell[0], cell[1], State.ALIVE);
+                        }
+                    }
                 } else {
                     // paint tool — toggle and track drag state
                     State current = grid.getState(row, col);
@@ -81,12 +91,20 @@ public class GridPanel extends JPanel implements GridObserver {
             // update ghost preview as mouse moves
             @Override
             public void mouseMoved(MouseEvent e) {
-                if (currentTool != Tool.LINE || lineStart == null) return;
                 int row = e.getY() / cellSize;
                 int col = e.getX() / cellSize;
-                if (!grid.isInBounds(row, col)) return;
-                linePreview = getLineCells(lineStart[0], lineStart[1], row, col);
-                repaint();
+
+                if (currentTool == Tool.LINE && lineStart != null) {
+                    if (!grid.isInBounds(row, col)) return;
+                    linePreview = getLineCells(lineStart[0], lineStart[1], row, col);
+                    repaint();
+                } else if (currentTool == Tool.SHAPE && activeShape != null) {
+                    shapePreview = new ArrayList<>();
+                    for (int[] offset : activeShape.getRelativeCells()) {
+                        shapePreview.add(new int[]{row + offset[0], col + offset[1]});
+                    }
+                    repaint();
+                }
             }
         };
 
@@ -105,6 +123,14 @@ public class GridPanel extends JPanel implements GridObserver {
         this.currentTool = tool;
         lineStart = null;
         linePreview = List.of();
+        shapePreview = List.of();
+        repaint();
+    }
+
+    public void setActiveShape(Shape shape) {
+        this.activeShape = shape;
+        this.currentTool = shape != null ? Tool.SHAPE : Tool.PAINT;
+        shapePreview = List.of();
         repaint();
     }
 
@@ -127,6 +153,14 @@ public class GridPanel extends JPanel implements GridObserver {
         graphics2d.setColor(new Color(20, 100, 100, 50));
         for (int[] cell : linePreview) {
             graphics2d.fillRect(cell[1] * cellSize, cell[0] * cellSize, cellSize, cellSize);
+        }
+
+        // draw ghost preview for shape tool
+        graphics2d.setColor(new Color(20, 100, 100, 50));
+        for (int[] cell : shapePreview) {
+            if (grid.isInBounds(cell[0], cell[1])) {
+                graphics2d.fillRect(cell[1] * cellSize, cell[0] * cellSize, cellSize, cellSize);
+            }
         }
     }
 
