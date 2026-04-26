@@ -27,6 +27,19 @@ public final class GameOfLifeApp {
     private final int cellSize;
     private final int stepIntervalMillis;
 
+    static void main(String[] args) {
+        GameOfLifeApp app = GameOfLifeApp
+                .builder()
+                .withRows(DEFAULT_GRID_HEIGHT)
+                .withColumns(DEFAULT_GRID_WIDTH)
+                .withConwaysRule()
+                .withCellSize(DEFAULT_CELL_SIZE)
+                .withStepIntervalMillis(DEFAULT_STEP_INTERVAL_MILLIS)
+                //.withRockPaperScissorsRule()
+                .build();
+        app.show();
+    }
+
     private GameOfLifeApp(Builder builder) {
         this.title = builder.title;
         this.grid = builder.grid;
@@ -219,18 +232,7 @@ public final class GameOfLifeApp {
         return new Builder();
     }
 
-    static void main(String[] args) {
-        GameOfLifeApp app = GameOfLifeApp
-                .builder()
-                .withRows(DEFAULT_GRID_HEIGHT)
-                .withColumns(DEFAULT_GRID_WIDTH)
-                .withConwaysRule()
-                .withCellSize(DEFAULT_CELL_SIZE)
-                .withStepIntervalMillis(DEFAULT_STEP_INTERVAL_MILLIS)
-                //.withRockPaperScissorsRule()
-                .build();
-        app.show();
-    }
+
 
     public static final class Builder {
         private String title = null;
