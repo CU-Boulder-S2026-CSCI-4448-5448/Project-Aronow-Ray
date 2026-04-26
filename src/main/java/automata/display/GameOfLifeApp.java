@@ -4,7 +4,10 @@ import automata.Grid;
 import automata.Tool;
 import automata.controller.GridInteractionController;
 import automata.controller.SimulationController;
+import automata.presets.BlinkerPreset;
+import automata.presets.GliderPreset;
 import automata.presets.GridPreset;
+import automata.presets.Shape;
 import automata.rules.ConwaysRule;
 import automata.rules.Rule;
 
@@ -46,16 +49,18 @@ public final class GameOfLifeApp {
 
             // Tool buttons pinned to the top left
             JButton lineToolButton = createLineToolButton(interactionController);
+            JComboBox<Shape> shapeDropdown = createShapeDropdown(interactionController);
             JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             toolPanel.add(lineToolButton);
+            toolPanel.add(shapeDropdown);
             container.add(toolPanel, BorderLayout.NORTH);
 
             // Simulation buttons along the bottom
-            JButton startStopButton = createStartStopButton(simulationController, interactionController, lineToolButton);
+            JButton startStopButton = createStartStopButton(simulationController, interactionController, lineToolButton, shapeDropdown);
             JPanel buttonPanel = new JPanel(new FlowLayout());
             buttonPanel.add(startStopButton);
-            buttonPanel.add(createResetButton(simulationController, startStopButton, lineToolButton));
-            buttonPanel.add(createClearButton(simulationController, startStopButton, lineToolButton));
+            buttonPanel.add(createResetButton(simulationController, startStopButton, lineToolButton, shapeDropdown));
+            buttonPanel.add(createClearButton(simulationController, startStopButton, lineToolButton, shapeDropdown));
             container.add(buttonPanel, BorderLayout.SOUTH);
 
             // Set custom icon :)
@@ -69,7 +74,7 @@ public final class GameOfLifeApp {
         });
     }
 
-    private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton) {
+    private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Start");
         button.addActionListener(_ -> {
             boolean isNowRunning = simulationController.toggleSimulation();
@@ -77,30 +82,35 @@ public final class GameOfLifeApp {
                 interactionController.setCurrentTool(Tool.PAINT); // reset tools on sim start
                 lineToolButton.setEnabled(false);
                 lineToolButton.setText("Line Tool");
+                shapeDropdown.setEnabled(false);
+                shapeDropdown.setSelectedIndex(0); // reset to "— None —"
                 button.setText("Stop");
             } else {
                 lineToolButton.setEnabled(true);
+                shapeDropdown.setEnabled(true);
                 button.setText("Start");
             }
         });
         return button;
     }
 
-    private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton) {
+    private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Reset");
         button.addActionListener(_ -> {
             simulationController.resetSimulation();
             lineToolButton.setEnabled(true);
+            shapeDropdown.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
     }
 
-    private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton) {
+    private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Clear");
         button.addActionListener(_ -> {
             simulationController.clearGrid();
             lineToolButton.setEnabled(true);
+            shapeDropdown.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
@@ -118,6 +128,31 @@ public final class GameOfLifeApp {
             }
         });
         return button;
+    }
+
+    private JComboBox<Shape> createShapeDropdown(GridInteractionController interactionController) {
+        JComboBox<Shape> dropdown = new JComboBox<>();
+        dropdown.addItem(null);             // "— None —" sentinel
+        dropdown.addItem(new GliderPreset());
+        dropdown.addItem(new BlinkerPreset());
+
+        // display shape names, and "— None —" for the null sentinel
+        dropdown.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel label = new JLabel(value == null ? "— None —" : value.getName());
+            if (isSelected) {
+                label.setBackground(list.getSelectionBackground());
+                label.setForeground(list.getSelectionForeground());
+                label.setOpaque(true);
+            }
+            return label;
+        });
+
+        dropdown.addActionListener(_ -> {
+            Shape selected = (Shape) dropdown.getSelectedItem();
+            interactionController.setActiveShape(selected); // null clears back to PAINT
+        });
+
+        return dropdown;
     }
 
     public Grid getGrid() {

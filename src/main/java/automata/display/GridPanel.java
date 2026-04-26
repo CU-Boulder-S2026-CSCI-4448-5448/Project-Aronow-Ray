@@ -51,6 +51,14 @@ public class GridPanel extends JPanel implements GridObserver {
         for (int[] cell : interactionController.getLinePreview()) {
             graphics2d.fillRect(cell[1] * cellSize, cell[0] * cellSize, cellSize, cellSize);
         }
+
+        // draw ghost preview for shape tool
+        graphics2d.setColor(new Color(20, 100, 100, 50));
+        for (int[] cell : interactionController.getShapePreview()) {
+            if (grid.isInBounds(cell[0], cell[1])) {
+                graphics2d.fillRect(cell[1] * cellSize, cell[0] * cellSize, cellSize, cellSize);
+            }
+        }
     }
 
     @Override

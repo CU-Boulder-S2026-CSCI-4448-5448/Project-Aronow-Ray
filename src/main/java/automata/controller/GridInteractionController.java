@@ -3,6 +3,7 @@ package automata.controller;
 import automata.GridSubject;
 import automata.State;
 import automata.Tool;
+import automata.presets.Shape;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -19,6 +20,8 @@ public class GridInteractionController extends MouseAdapter {
     private Tool currentTool = Tool.PAINT;
     private int[] lineStart = null;
     private List<int[]> linePreview = List.of();
+    private Shape activeShape = null;
+    private List<int[]> shapePreview = List.of();
 
     public GridInteractionController(GridSubject grid, int cellSize) {
         if (cellSize <= 0) {
@@ -59,6 +62,13 @@ public class GridInteractionController extends MouseAdapter {
                 lineStart = null;
                 linePreview = List.of();
             }
+        } else if (currentTool == Tool.SHAPE && activeShape != null) {
+            // stamp all preview cells onto the grid
+            for (int[] cell : shapePreview) {
+                if (grid.isInBounds(cell[0], cell[1])) {
+                    grid.setState(cell[0], cell[1], State.ALIVE);
+                }
+            }
         } else {
             // paint tool — toggle and track drag state
             State current = grid.getState(row, column);
@@ -86,18 +96,20 @@ public class GridInteractionController extends MouseAdapter {
     // update ghost preview as mouse moves
     @Override
     public void mouseMoved(MouseEvent event) {
-        if (currentTool != Tool.LINE || lineStart == null) {
-            return;
-        }
-
         int row = event.getY() / cellSize;
         int column = event.getX() / cellSize;
-        if (!grid.isInBounds(row, column)) {
-            return;
-        }
 
-        linePreview = getLineCells(lineStart[0], lineStart[1], row, column);
-        repaintCallback.run();
+        if (currentTool == Tool.LINE && lineStart != null) {
+            if (!grid.isInBounds(row, column)) return;
+            linePreview = getLineCells(lineStart[0], lineStart[1], row, column);
+            repaintCallback.run();
+        } else if (currentTool == Tool.SHAPE && activeShape != null) {
+            shapePreview = new ArrayList<>();
+            for (int[] offset : activeShape.getRelativeCells()) {
+                shapePreview.add(new int[]{row + offset[0], column + offset[1]});
+            }
+            repaintCallback.run();
+        }
     }
 
     public void setEditingEnabled(boolean editingEnabled) {
@@ -116,11 +128,23 @@ public class GridInteractionController extends MouseAdapter {
         this.currentTool = tool;
         lineStart = null;
         linePreview = List.of();
+        shapePreview = List.of();
+        repaintCallback.run();
+    }
+
+    public void setActiveShape(Shape shape) {
+        this.activeShape = shape;
+        this.currentTool = shape != null ? Tool.SHAPE : Tool.PAINT;
+        shapePreview = List.of();
         repaintCallback.run();
     }
 
     public List<int[]> getLinePreview() {
         return linePreview;
+    }
+
+    public List<int[]> getShapePreview() {
+        return shapePreview;
     }
 
     /* Bresenham's line algorithm, courtesy of Claude.
