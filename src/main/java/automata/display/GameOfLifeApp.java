@@ -132,19 +132,18 @@ public final class GameOfLifeApp {
 
     private JComboBox<Shape> createShapeDropdown(GridInteractionController interactionController) {
         JComboBox<Shape> dropdown = new JComboBox<>();
-        dropdown.addItem(null);             // "— None —" sentinel
+        dropdown.addItem(null);             // "— None —" option
         dropdown.addItem(new GliderPreset());
         dropdown.addItem(new BlinkerPreset());
 
-        // display shape names, and "— None —" for the null sentinel
-        dropdown.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
-            JLabel label = new JLabel(value == null ? "— None —" : value.getName());
-            if (isSelected) {
-                label.setBackground(list.getSelectionBackground());
-                label.setForeground(list.getSelectionForeground());
-                label.setOpaque(true);
+        // display shape names, and "— None —" for the null option
+        dropdown.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                setText(value == null ? "— None —" : ((Shape) value).getName());
+                return this;
             }
-            return label;
         });
 
         dropdown.addActionListener(_ -> {
