@@ -16,12 +16,11 @@ public class Grid implements GridSubject {
     private final int maxColumns;
     private final List<GridObserver> observers = new ArrayList<>();
 
-    public Grid(CellFactory cellFactory, Rule rule, int maxRows, int maxColumns) {
+    public Grid(Rule rule, int maxRows, int maxColumns) {
         if (maxRows < 0 || maxColumns < 0) {
             throw new IllegalArgumentException("Grid dimensions must be non-negative.");
         }
 
-        Objects.requireNonNull(cellFactory, "cellFactory");
         this.rule = Objects.requireNonNull(rule, "rule");
         this.maxRows = maxRows;
         this.maxColumns = maxColumns;
@@ -30,13 +29,13 @@ public class Grid implements GridSubject {
         State initialState = rule.getStateSet().getDefaultState();
         for (int x = 0; x <= maxRows; x++) {
             for (int y = 0; y <= maxColumns; y++) {
-                grid[x][y] = cellFactory.createCell(initialState);
+                grid[x][y] = new Cell(initialState);
             }
         }
     }
 
-    public Grid(CellFactory cellFactory, Rule rule) {
-        this(cellFactory, rule, DEFAULT_MAX_ROWS, DEFAULT_MAX_COLUMNS);
+    public Grid(Rule rule) {
+        this(rule, DEFAULT_MAX_ROWS, DEFAULT_MAX_COLUMNS);
     }
 
     public void updateAllCells() {

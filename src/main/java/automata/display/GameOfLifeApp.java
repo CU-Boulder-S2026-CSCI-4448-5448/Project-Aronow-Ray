@@ -1,6 +1,5 @@
 package automata.display;
 
-import automata.CellFactory;
 import automata.Grid;
 import automata.GridSnapshot;
 import automata.presets.GridPreset;
@@ -123,7 +122,6 @@ public final class GameOfLifeApp {
     public static final class Builder {
         private String title = "Conway's Game of Life";
         private Rule rule = new ConwaysRule();
-        private CellFactory cellFactory = new CellFactory();
         private GridPreset gridPreset = null;
         private Grid grid;
         private int rows = Grid.DEFAULT_MAX_ROWS;
@@ -141,11 +139,6 @@ public final class GameOfLifeApp {
 
         public Builder withRule(Rule rule) {
             this.rule = rule;
-            return this;
-        }
-
-        public Builder withCellFactory(CellFactory cellFactory) {
-            this.cellFactory = cellFactory;
             return this;
         }
 
@@ -184,7 +177,7 @@ public final class GameOfLifeApp {
             if (stepIntervalMillis <= 0) {
                 throw new IllegalArgumentException("Step interval must be positive.");
             }
-            this.grid = new Grid(cellFactory, rule, rows, columns);
+            this.grid = new Grid(rule, rows, columns);
             if (gridPreset != null) {
                 gridPreset.apply(grid); // stamps the initial pattern onto the grid
             }

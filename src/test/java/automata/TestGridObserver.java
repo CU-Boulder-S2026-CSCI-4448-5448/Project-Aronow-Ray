@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestGridObserver {
     @Test
     void observerReceivesCellUpdateNotification() {
-        Grid grid = new Grid(new CellFactory(), new ConwaysRule(), 1, 1);
+        Grid grid = new Grid(new ConwaysRule(), 1, 1);
         RecordingObserver observer = new RecordingObserver();
 
         grid.addObserver(observer);
@@ -23,7 +23,7 @@ public class TestGridObserver {
 
     @Test
     void removedObserverStopsReceivingUpdates() {
-        Grid grid = new Grid(new CellFactory(), new ConwaysRule(), 1, 1);
+        Grid grid = new Grid(new ConwaysRule(), 1, 1);
         RecordingObserver observer = new RecordingObserver();
 
         grid.addObserver(observer);
