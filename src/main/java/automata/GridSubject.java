@@ -14,4 +14,6 @@ public interface GridSubject {
     void setState(int row, int col, State state);
 
     boolean isInBounds(int row, int column);
+
+    StateSet getStateSet();
 }

@@ -22,6 +22,16 @@ public class TestGrid {
         assertThrows(IllegalArgumentException.class, () -> grid.setState(0, 0, State.ROCK));
     }
 
+    @Test
+    void clearUsesRuleDefaultState() {
+        Grid grid = new Grid(new FixedStateRule(StateSet.ROCK_PAPER_SCISSORS), 1, 1);
+        grid.setState(0, 0, State.PAPER);
+
+        grid.clear();
+
+        assertEquals(State.ROCK, grid.getState(0, 0));
+    }
+
     private static final class FixedStateRule implements Rule {
         private final StateSet stateSet;
 
