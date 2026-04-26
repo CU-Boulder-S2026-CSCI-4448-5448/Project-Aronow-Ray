@@ -9,6 +9,7 @@ import automata.rules.Rule;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Objects;
 
 public final class GameOfLifeApp {
     private static final int DEFAULT_STEP_INTERVAL_MILLIS = 200; // Changed from 1_000
@@ -46,6 +47,10 @@ public final class GameOfLifeApp {
             buttonPanel.add(createClearButton(gridPanel, simulationTimer, startStopButton));
             container.add(buttonPanel, BorderLayout.SOUTH);
 
+            // Set custom icon :)
+            ImageIcon icon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/icon.png")));
+
+            frame.setIconImage(icon.getImage());
             frame.add(container);
             frame.pack();
             frame.setLocationRelativeTo(null);
