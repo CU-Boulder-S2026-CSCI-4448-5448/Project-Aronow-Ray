@@ -1,8 +1,9 @@
 package automata.display;
 
 import automata.Grid;
-import automata.GridSnapshot;
 import automata.Tool;
+import automata.controller.GridInteractionController;
+import automata.controller.SimulationController;
 import automata.presets.GridPreset;
 import automata.rules.ConwaysRule;
 import automata.rules.Rule;
@@ -16,7 +17,6 @@ public final class GameOfLifeApp {
 
     private final String title;
     private final Grid grid;
-    private GridSnapshot savedSnapshot;
     private final int cellSize;
     private final int stepIntervalMillis;
 
@@ -30,27 +30,32 @@ public final class GameOfLifeApp {
     public void show() {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame(title);
-            Timer simulationTimer = new Timer(stepIntervalMillis, event -> grid.updateAllCells());
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            GridPanel gridPanel = new GridPanel(grid, cellSize);
+            // create controllers
+            GridInteractionController interactionController = new GridInteractionController(grid, cellSize);
+            SimulationController simulationController = new SimulationController(grid, interactionController, stepIntervalMillis);
+
+            GridPanel gridPanel = new GridPanel(grid, cellSize, interactionController);
+
+            // Connect repaint to the controller without giving it a direct reference to GridPanel (MVC)
+            interactionController.setRepaintCallback(gridPanel::repaint);
 
             JPanel container = new JPanel(new BorderLayout());
             container.add(gridPanel, BorderLayout.CENTER); // grid takes all available space
 
             // Tool buttons pinned to the top left
-            JButton lineToolButton = createLineToolButton(gridPanel);
+            JButton lineToolButton = createLineToolButton(interactionController);
             JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             toolPanel.add(lineToolButton);
             container.add(toolPanel, BorderLayout.NORTH);
 
             // Simulation buttons along the bottom
-            JButton startStopButton = createStartStopButton(gridPanel, simulationTimer, lineToolButton);
+            JButton startStopButton = createStartStopButton(simulationController, interactionController, lineToolButton);
             JPanel buttonPanel = new JPanel(new FlowLayout());
             buttonPanel.add(startStopButton);
-            // pass the start/stop button so that it can be updated by the other buttons
-            buttonPanel.add(createResetButton(gridPanel, simulationTimer, startStopButton, lineToolButton));
-            buttonPanel.add(createClearButton(gridPanel, simulationTimer, startStopButton, lineToolButton));
+            buttonPanel.add(createResetButton(simulationController, startStopButton, lineToolButton));
+            buttonPanel.add(createClearButton(simulationController, startStopButton, lineToolButton));
             container.add(buttonPanel, BorderLayout.SOUTH);
 
             // Set custom icon :)
@@ -64,63 +69,51 @@ public final class GameOfLifeApp {
         });
     }
 
-    // function for the button to start/stop simulation
-    private JButton createStartStopButton(GridPanel gridPanel, Timer simulationTimer, JButton lineToolButton) {
+    private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton) {
         JButton button = new JButton("Start");
         button.addActionListener(_ -> {
-            if (simulationTimer.isRunning()) {
-                simulationTimer.stop();
-                gridPanel.setEditingEnabled(true);
-                lineToolButton.setEnabled(true);
-                button.setText("Start");
-            } else {
-                this.savedSnapshot = new GridSnapshot(grid); // create a snapshot on run
-                simulationTimer.start();
-                gridPanel.setEditingEnabled(false); // can only add cells when paused
-                gridPanel.setCurrentTool(Tool.PAINT); // reset line tool on sim start
+            boolean isNowRunning = simulationController.toggleSimulation();
+            if (isNowRunning) {
+                interactionController.setCurrentTool(Tool.PAINT); // reset tools on sim start
                 lineToolButton.setEnabled(false);
                 lineToolButton.setText("Line Tool");
                 button.setText("Stop");
+            } else {
+                lineToolButton.setEnabled(true);
+                button.setText("Start");
             }
         });
         return button;
     }
 
-    private JButton createResetButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton, JButton lineToolButton) {
-
+    private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton) {
         JButton button = new JButton("Reset");
         button.addActionListener(_ -> {
-            if (savedSnapshot == null) return;
-            simulationTimer.stop();
-            savedSnapshot.restore(grid);
-            gridPanel.setEditingEnabled(true);
+            simulationController.resetSimulation();
             lineToolButton.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
     }
 
-    private JButton createClearButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton, JButton lineToolButton) {
-
+    private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton) {
         JButton button = new JButton("Clear");
         button.addActionListener(_ -> {
-            simulationTimer.stop();
-            grid.clear();
-            gridPanel.setEditingEnabled(true);
+            simulationController.clearGrid();
             lineToolButton.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
     }
 
-    private JButton createLineToolButton(GridPanel gridPanel) {
+    private JButton createLineToolButton(GridInteractionController interactionController) {
         JButton button = new JButton("Line Tool");
         button.addActionListener(_ -> {
-            if (gridPanel.getCurrentTool() == Tool.LINE) {
-                gridPanel.setCurrentTool(Tool.PAINT);
+            if (interactionController.getCurrentTool() == Tool.LINE) {
+                interactionController.setCurrentTool(Tool.PAINT);
                 button.setText("Line Tool");
             } else {
-                gridPanel.setCurrentTool(Tool.LINE);
+                interactionController.setCurrentTool(Tool.LINE);
                 button.setText("Line Tool: ON");
             }
         });
@@ -211,4 +204,3 @@ public final class GameOfLifeApp {
         }
     }
 }
-
