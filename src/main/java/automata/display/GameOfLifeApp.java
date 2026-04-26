@@ -1,6 +1,7 @@
 package automata.display;
 
-import automata.CellFactory;
+import automata.controller.GridInteractionController;
+import automata.controller.SimulationController;
 import automata.Grid;
 import automata.GridSnapshot;
 import automata.Tool;
@@ -17,7 +18,6 @@ public final class GameOfLifeApp {
 
     private final String title;
     private final Grid grid;
-    private GridSnapshot savedSnapshot;
     private final int cellSize;
     private final int stepIntervalMillis;
 
@@ -31,14 +31,25 @@ public final class GameOfLifeApp {
     public void show() {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame(title);
-            Timer simulationTimer = new Timer(stepIntervalMillis, event -> grid.updateAllCells());
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             GridPanel gridPanel = new GridPanel(grid, cellSize);
+            GridInteractionController gridInteractionController = new GridInteractionController(grid, cellSize);
+            SimulationController simulationController =
+                new SimulationController(grid, gridInteractionController, stepIntervalMillis);
+            gridPanel.addMouseListener(gridInteractionController);
+            gridPanel.addMouseMotionListener(gridInteractionController);
 
             JPanel container = new JPanel(new BorderLayout());
             container.add(gridPanel, BorderLayout.CENTER); // grid takes all available space
 
+            // Add these buttons to a panel at the bottom of the grid
+            JButton startStopButton = createStartStopButton(simulationController);
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            buttonPanel.add(startStopButton);
+            // pass the start/stop button so that it can be updated by the other buttons
+            buttonPanel.add(createResetButton(simulationController, startStopButton));
+            buttonPanel.add(createClearButton(simulationController, startStopButton));
             // Tool buttons pinned to the top left
             JButton lineToolButton = createLineToolButton(gridPanel);
             JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -150,7 +161,6 @@ public final class GameOfLifeApp {
     public static final class Builder {
         private String title = "Conway's Game of Life";
         private Rule rule = new ConwaysRule();
-        private CellFactory cellFactory = new CellFactory();
         private GridPreset gridPreset = null;
         private Grid grid;
         private int rows = Grid.DEFAULT_MAX_ROWS;
@@ -168,11 +178,6 @@ public final class GameOfLifeApp {
 
         public Builder withRule(Rule rule) {
             this.rule = rule;
-            return this;
-        }
-
-        public Builder withCellFactory(CellFactory cellFactory) {
-            this.cellFactory = cellFactory;
             return this;
         }
 
@@ -211,7 +216,7 @@ public final class GameOfLifeApp {
             if (stepIntervalMillis <= 0) {
                 throw new IllegalArgumentException("Step interval must be positive.");
             }
-            this.grid = new Grid(cellFactory, rule, rows, columns);
+            this.grid = new Grid(rule, rows, columns);
             if (gridPreset != null) {
                 gridPreset.apply(grid); // stamps the initial pattern onto the grid
             }
