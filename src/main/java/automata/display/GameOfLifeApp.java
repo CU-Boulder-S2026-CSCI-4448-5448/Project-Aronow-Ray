@@ -4,9 +4,7 @@ import automata.Grid;
 import automata.Tool;
 import automata.controller.GridInteractionController;
 import automata.controller.SimulationController;
-import automata.presets.BlinkerPreset;
-import automata.presets.GliderPreset;
-import automata.presets.GridPreset;
+import automata.presets.*;
 import automata.presets.Shape;
 import automata.rules.ConwaysRule;
 import automata.rules.Rule;
@@ -135,6 +133,8 @@ public final class GameOfLifeApp {
         dropdown.addItem(null);             // "— None —" option
         dropdown.addItem(new GliderPreset());
         dropdown.addItem(new BlinkerPreset());
+        dropdown.addItem(new CloverleafPreset());
+        dropdown.addItem(new HammerheadPreset());
 
         // display shape names, and "— None —" for the null option
         dropdown.setRenderer(new DefaultListCellRenderer() {
