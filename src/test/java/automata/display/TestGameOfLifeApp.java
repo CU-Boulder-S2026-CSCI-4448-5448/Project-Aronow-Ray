@@ -11,8 +11,11 @@ public class TestGameOfLifeApp {
     @Test
     void builderAppliesInitialPresetToGrid() {
         GameOfLifeApp app = GameOfLifeApp.builder()
+            .withConwaysRule()
             .withRows(4)
             .withColumns(4)
+            .withCellSize(10)
+            .withStepIntervalMillis(200)
             .withInitialState(new BlinkerPreset())
             .build();
 
@@ -23,11 +26,17 @@ public class TestGameOfLifeApp {
 
     @Test
     void builderRejectsInvalidCellSize() {
-        assertThrows(IllegalArgumentException.class, () -> GameOfLifeApp.builder().withCellSize(0).build());
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> GameOfLifeApp.builder().withConwaysRule().withRows(4).withColumns(4).withCellSize(0).build()
+        );
     }
 
     @Test
     void builderRejectsInvalidStepInterval() {
-        assertThrows(IllegalArgumentException.class, () -> GameOfLifeApp.builder().withStepIntervalMillis(0).build());
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> GameOfLifeApp.builder().withConwaysRule().withRows(4).withColumns(4).withCellSize(10).withStepIntervalMillis(0).build()
+        );
     }
 }

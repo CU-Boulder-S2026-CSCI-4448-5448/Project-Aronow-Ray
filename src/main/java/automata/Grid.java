@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Objects;
 
 public class Grid implements GridSubject {
-    public static final int DEFAULT_MAX_ROWS = 99;
-    public static final int DEFAULT_MAX_COLUMNS = 99;
 
     private final Rule rule;
     private final Cell[][] grid;
@@ -32,10 +30,6 @@ public class Grid implements GridSubject {
                 grid[x][y] = new Cell(initialState);
             }
         }
-    }
-
-    public Grid(Rule rule) {
-        this(rule, DEFAULT_MAX_ROWS, DEFAULT_MAX_COLUMNS);
     }
 
     public void updateAllCells() {
