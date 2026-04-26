@@ -35,7 +35,7 @@ public class RockPaperScissorsRule implements Rule{
                         numPapers++;
                         break;
                     default:
-                        break;
+                        throw new IllegalStateException("Unexpected state: " + neighborState);
                 }
             }
         }

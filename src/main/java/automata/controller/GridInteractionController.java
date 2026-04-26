@@ -2,6 +2,7 @@ package automata.controller;
 
 import automata.GridSubject;
 import automata.State;
+import automata.StateSet;
 import automata.Tool;
 import automata.presets.Shape;
 
@@ -9,15 +10,21 @@ import javax.swing.SwingUtilities;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class GridInteractionController extends MouseAdapter {
     private final GridSubject grid;
     private final int cellSize;
+    private final StateSet stateSet;
+    private final State defaultState;
     private Runnable repaintCallback = () -> {}; // no-op until set to avoid nullptr exception
     private boolean editingEnabled = true;
-    private State dragTargetState = State.DEAD;
+    private State dragTargetState;
+    private State selectedDrawState;
+    private int brushSize = 1;
     private Tool currentTool = Tool.PAINT;
     private int[] lineStart = null;
     private List<int[]> linePreview = List.of();
@@ -31,6 +38,10 @@ public class GridInteractionController extends MouseAdapter {
 
         this.grid = Objects.requireNonNull(grid, "grid");
         this.cellSize = cellSize;
+        this.stateSet = grid.getStateSet();
+        this.defaultState = stateSet.getDefaultState();
+        this.dragTargetState = defaultState;
+        this.selectedDrawState = stateSet == StateSet.CONWAYS_LIFE ? State.ALIVE : defaultState;
     }
 
     // MVC: the controller needs to trigger repaints but shouldn't hold a direct reference to the view.
@@ -58,12 +69,12 @@ public class GridInteractionController extends MouseAdapter {
             if (lineStart == null) {
                 // first click: set the start point
                 lineStart = new int[]{row, column};
-                linePreview = getLineCells(row, column, row, column);
+                linePreview = expandBrushAlongCells(getLineCells(row, column, row, column));
                 repaintCallback.run();
             } else {
                 // second click: apply the preview to the grid
                 for (int[] cell : linePreview) {
-                    grid.setState(cell[0], cell[1], State.ALIVE);
+                    grid.setState(cell[0], cell[1], selectedDrawState);
                 }
                 lineStart = null;
                 linePreview = List.of();
@@ -72,20 +83,19 @@ public class GridInteractionController extends MouseAdapter {
             // stamp all preview cells onto the grid
             for (int[] cell : shapePreview) {
                 if (grid.isInBounds(cell[0], cell[1])) {
-                    grid.setState(cell[0], cell[1], State.ALIVE);
+                    grid.setState(cell[0], cell[1], selectedDrawState);
                 }
             }
         } else {
-            // paint tool. Left click toggles, right click erases
             if (SwingUtilities.isRightMouseButton(event)) {
-                dragTargetState = State.DEAD;
-            } else {
-                // check what the clicked cell currently is
+                dragTargetState = defaultState;
+            } else if (stateSet == StateSet.CONWAYS_LIFE) {
                 State current = grid.getState(row, column);
-                // toggle: if it was alive, drag will erase. If dead, drag will paint.
                 dragTargetState = current == State.ALIVE ? State.DEAD : State.ALIVE;
+            } else {
+                dragTargetState = selectedDrawState;
             }
-            grid.setState(row, column, dragTargetState);
+            applyBrushAt(row, column, dragTargetState);
         }
     }
 
@@ -102,7 +112,7 @@ public class GridInteractionController extends MouseAdapter {
             return;
         }
 
-        grid.setState(row, column, dragTargetState);
+        applyBrushAt(row, column, dragTargetState);
     }
 
     // update ghost preview as mouse moves
@@ -113,12 +123,12 @@ public class GridInteractionController extends MouseAdapter {
 
         if (currentTool == Tool.LINE && lineStart != null) {
             if (!grid.isInBounds(row, column)) return;
-            linePreview = getLineCells(lineStart[0], lineStart[1], row, column);
+            linePreview = expandBrushAlongCells(getLineCells(lineStart[0], lineStart[1], row, column));
             repaintCallback.run();
         } else if (currentTool == Tool.SHAPE && activeShape != null) {
             shapePreview = new ArrayList<>();
             for (int[] offset : activeShape.getRelativeCells()) {
-                shapePreview.add(new int[]{row + offset[0], column + offset[1]});
+                shapePreview.addAll(getBrushCells(row + offset[0], column + offset[1]));
             }
             repaintCallback.run();
         }
@@ -151,6 +161,32 @@ public class GridInteractionController extends MouseAdapter {
         repaintCallback.run();
     }
 
+    public void setSelectedDrawState(State state) {
+        State nonNullState = Objects.requireNonNull(state, "state");
+        if (!stateSet.supports(nonNullState)) {
+            throw new IllegalArgumentException("State " + state + " is not supported by this grid.");
+        }
+        this.selectedDrawState = nonNullState;
+    }
+
+    public State getSelectedDrawState() {
+        return selectedDrawState;
+    }
+
+    public void setBrushSize(int brushSize) {
+        if (brushSize <= 0) {
+            throw new IllegalArgumentException("Brush size must be positive.");
+        }
+        this.brushSize = brushSize;
+        linePreview = List.of();
+        shapePreview = List.of();
+        repaintCallback.run();
+    }
+
+    public int getBrushSize() {
+        return brushSize;
+    }
+
     public List<int[]> getLinePreview() {
         return linePreview;
     }
@@ -174,6 +210,42 @@ public class GridInteractionController extends MouseAdapter {
             int e2 = 2 * err;
             if (e2 > -dc) { err -= dc; r1 += sr; }
             if (e2 < dr)  { err += dr; c1 += sc; }
+        }
+        return cells;
+    }
+
+    private void applyBrushAt(int row, int column, State state) {
+        for (int[] cell : getBrushCells(row, column)) {
+            grid.setState(cell[0], cell[1], state);
+        }
+    }
+
+    private List<int[]> expandBrushAlongCells(List<int[]> centers) {
+        Set<String> seen = new LinkedHashSet<>();
+        List<int[]> expanded = new ArrayList<>();
+        for (int[] center : centers) {
+            for (int[] cell : getBrushCells(center[0], center[1])) {
+                String key = cell[0] + "," + cell[1];
+                if (seen.add(key)) {
+                    expanded.add(cell);
+                }
+            }
+        }
+        return expanded;
+    }
+
+    private List<int[]> getBrushCells(int centerRow, int centerColumn) {
+        List<int[]> cells = new ArrayList<>();
+        int rowStart = centerRow - brushSize / 2;
+        int rowEnd = centerRow + (brushSize - 1) / 2;
+        int columnStart = centerColumn - brushSize / 2;
+        int columnEnd = centerColumn + (brushSize - 1) / 2;
+        for (int row = rowStart; row <= rowEnd; row++) {
+            for (int column = columnStart; column <= columnEnd; column++) {
+                if (grid.isInBounds(row, column)) {
+                    cells.add(new int[]{row, column});
+                }
+            }
         }
         return cells;
     }

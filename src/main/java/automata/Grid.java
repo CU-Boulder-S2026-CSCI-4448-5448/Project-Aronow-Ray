@@ -49,9 +49,10 @@ public class Grid implements GridSubject {
 
     // clear all cells
     public void clear() {
+        State defaultState = rule.getStateSet().getDefaultState();
         for (int row = 0; row <= maxRows; row++)
             for (int col = 0; col <= maxColumns; col++)
-                setState(row, col, State.DEAD);
+                setState(row, col, defaultState);
     }
 
     public Cell getCell(int row, int column) {
@@ -93,6 +94,11 @@ public class Grid implements GridSubject {
     @Override
     public int getMaxColumns() {
         return maxColumns;
+    }
+
+    @Override
+    public StateSet getStateSet() {
+        return rule.getStateSet();
     }
 
     private void validatePosition(int row, int column) {

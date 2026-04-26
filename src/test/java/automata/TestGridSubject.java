@@ -21,5 +21,6 @@ public class TestGridSubject {
         assertEquals(2, subject.getMaxRows());
         assertEquals(3, subject.getMaxColumns());
         assertEquals(State.DEAD, subject.getState(0, 0));
+        assertEquals(StateSet.CONWAYS_LIFE, subject.getStateSet());
     }
 }

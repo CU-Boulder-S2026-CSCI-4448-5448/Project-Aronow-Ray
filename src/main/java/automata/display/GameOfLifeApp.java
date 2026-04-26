@@ -1,6 +1,8 @@
 package automata.display;
 
 import automata.Grid;
+import automata.State;
+import automata.StateSet;
 import automata.Tool;
 import automata.controller.GridInteractionController;
 import automata.controller.SimulationController;
@@ -51,18 +53,24 @@ public final class GameOfLifeApp {
 
             // Tool buttons pinned to the top left
             JButton lineToolButton = createLineToolButton(interactionController);
+            JComboBox<State> brushDropdown = createBrushDropdown(interactionController);
+            JComboBox<Integer> brushSizeDropdown = createBrushSizeDropdown(interactionController);
             JComboBox<Shape> shapeDropdown = createShapeDropdown(interactionController);
             JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            toolPanel.add(brushDropdown);
+            toolPanel.add(brushSizeDropdown);
             toolPanel.add(lineToolButton);
-            toolPanel.add(shapeDropdown);
+            if (grid.getStateSet() == StateSet.CONWAYS_LIFE) {
+                toolPanel.add(shapeDropdown);
+            }
             container.add(toolPanel, BorderLayout.NORTH);
 
             // Simulation buttons along the bottom
-            JButton startStopButton = createStartStopButton(simulationController, interactionController, lineToolButton, shapeDropdown);
+            JButton startStopButton = createStartStopButton(simulationController, interactionController, lineToolButton, brushDropdown, brushSizeDropdown, shapeDropdown);
             JPanel buttonPanel = new JPanel(new FlowLayout());
             buttonPanel.add(startStopButton);
-            buttonPanel.add(createResetButton(simulationController, startStopButton, lineToolButton, shapeDropdown));
-            buttonPanel.add(createClearButton(simulationController, startStopButton, lineToolButton, shapeDropdown));
+            buttonPanel.add(createResetButton(simulationController, startStopButton, lineToolButton, brushDropdown, brushSizeDropdown, shapeDropdown));
+            buttonPanel.add(createClearButton(simulationController, startStopButton, lineToolButton, brushDropdown, brushSizeDropdown, shapeDropdown));
             container.add(buttonPanel, BorderLayout.SOUTH);
 
             // Set custom icon :)
@@ -76,19 +84,23 @@ public final class GameOfLifeApp {
         });
     }
 
-    private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
+    private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton, JComboBox<State> brushDropdown, JComboBox<Integer> brushSizeDropdown, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Start");
         button.addActionListener(event -> {
             boolean isNowRunning = simulationController.toggleSimulation();
             if (isNowRunning) {
                 interactionController.setCurrentTool(Tool.PAINT); // reset tools on sim start
                 lineToolButton.setEnabled(false);
+                brushDropdown.setEnabled(false);
+                brushSizeDropdown.setEnabled(false);
                 lineToolButton.setText("Line Tool");
                 shapeDropdown.setEnabled(false);
                 shapeDropdown.setSelectedIndex(0); // reset to "— None —"
                 button.setText("Stop");
             } else {
                 lineToolButton.setEnabled(true);
+                brushDropdown.setEnabled(true);
+                brushSizeDropdown.setEnabled(true);
                 shapeDropdown.setEnabled(true);
                 button.setText("Start");
             }
@@ -96,26 +108,65 @@ public final class GameOfLifeApp {
         return button;
     }
 
-    private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
+    private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<State> brushDropdown, JComboBox<Integer> brushSizeDropdown, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Reset");
         button.addActionListener(event -> {
             simulationController.resetSimulation();
             lineToolButton.setEnabled(true);
+            brushDropdown.setEnabled(true);
+            brushSizeDropdown.setEnabled(true);
             shapeDropdown.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
     }
 
-    private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
+    private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<State> brushDropdown, JComboBox<Integer> brushSizeDropdown, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Clear");
         button.addActionListener(event -> {
             simulationController.clearGrid();
             lineToolButton.setEnabled(true);
+            brushDropdown.setEnabled(true);
+            brushSizeDropdown.setEnabled(true);
             shapeDropdown.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
+    }
+
+    private JComboBox<State> createBrushDropdown(GridInteractionController interactionController) {
+        JComboBox<State> dropdown = new JComboBox<>();
+        if (grid.getStateSet() == StateSet.CONWAYS_LIFE) {
+            dropdown.addItem(State.ALIVE);
+        } else {
+            dropdown.addItem(State.ROCK);
+            dropdown.addItem(State.PAPER);
+            dropdown.addItem(State.SCISSORS);
+        }
+        dropdown.setSelectedItem(interactionController.getSelectedDrawState());
+        dropdown.addActionListener(event -> {
+            State selected = (State) dropdown.getSelectedItem();
+            if (selected != null) {
+                interactionController.setSelectedDrawState(selected);
+            }
+        });
+        return dropdown;
+    }
+
+    private JComboBox<Integer> createBrushSizeDropdown(GridInteractionController interactionController) {
+        JComboBox<Integer> dropdown = new JComboBox<>();
+        dropdown.addItem(1);
+        dropdown.addItem(2);
+        dropdown.addItem(3);
+        dropdown.addItem(5);
+        dropdown.setSelectedItem(interactionController.getBrushSize());
+        dropdown.addActionListener(event -> {
+            Integer selected = (Integer) dropdown.getSelectedItem();
+            if (selected != null) {
+                interactionController.setBrushSize(selected);
+            }
+        });
+        return dropdown;
     }
 
     private JButton createLineToolButton(GridInteractionController interactionController) {
@@ -135,10 +186,12 @@ public final class GameOfLifeApp {
     private JComboBox<Shape> createShapeDropdown(GridInteractionController interactionController) {
         JComboBox<Shape> dropdown = new JComboBox<>();
         dropdown.addItem(null);             // "— None —" option
-        dropdown.addItem(new GliderPreset());
-        dropdown.addItem(new BlinkerPreset());
-        dropdown.addItem(new CloverleafPreset());
-        dropdown.addItem(new HammerheadPreset());
+        if (grid.getStateSet() == StateSet.CONWAYS_LIFE) {
+            dropdown.addItem(new GliderPreset());
+            dropdown.addItem(new BlinkerPreset());
+            dropdown.addItem(new CloverleafPreset());
+            dropdown.addItem(new HammerheadPreset());
+        }
 
         // display shape names, and "— None —" for the null option
         dropdown.setRenderer(new DefaultListCellRenderer() {
@@ -174,7 +227,7 @@ public final class GameOfLifeApp {
                 .withConwaysRule()
                 .withCellSize(DEFAULT_CELL_SIZE)
                 .withStepIntervalMillis(DEFAULT_STEP_INTERVAL_MILLIS)
-                //.withRockPaperScissorsRule() uncomment to use instead
+                //.withRockPaperScissorsRule()
                 .build();
         app.show();
     }
