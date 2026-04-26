@@ -7,6 +7,11 @@ import automata.StateSet;
 public class ConwaysRule implements Rule {
 
     @Override
+    public String getName() {
+        return "Conway";
+    }
+
+    @Override
     public State getNextStateForCell(Grid grid, int xLocation, int yLocation) {
         State currentState = grid.getState(xLocation, yLocation);
         int liveNeighbors = countLiveNeighbors(grid, xLocation, yLocation);

@@ -7,6 +7,14 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestConwaysRule {
+
+    @Test
+    void testGetName() {
+        ConwaysRule rule = new ConwaysRule();
+        rule.getName();
+        assertEquals("Conway", rule.getName());
+    }
+
     @Test
     void liveCellWithTwoNeighborsSurvives() {
         ConwaysRule rule = new ConwaysRule();
