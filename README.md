@@ -15,6 +15,7 @@ We inject the ruleset based on an aggregated Rule object into the game.
 Mia Ray, Julia Aronow
 
 ## Java Version: JDK 25
+ - gradle build system
 
 ## Running the Game
 
