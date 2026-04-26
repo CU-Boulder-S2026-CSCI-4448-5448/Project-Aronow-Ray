@@ -1,9 +1,9 @@
 package automata.display;
 
-import automata.CellFactory;
 import automata.Grid;
-import automata.GridSnapshot;
 import automata.Tool;
+import automata.controller.GridInteractionController;
+import automata.controller.SimulationController;
 import automata.presets.BlinkerPreset;
 import automata.presets.GliderPreset;
 import automata.presets.GridPreset;
@@ -20,7 +20,6 @@ public final class GameOfLifeApp {
 
     private final String title;
     private final Grid grid;
-    private GridSnapshot savedSnapshot;
     private final int cellSize;
     private final int stepIntervalMillis;
 
@@ -34,29 +33,34 @@ public final class GameOfLifeApp {
     public void show() {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame(title);
-            Timer simulationTimer = new Timer(stepIntervalMillis, event -> grid.updateAllCells());
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            GridPanel gridPanel = new GridPanel(grid, cellSize);
+            // create controllers
+            GridInteractionController interactionController = new GridInteractionController(grid, cellSize);
+            SimulationController simulationController = new SimulationController(grid, interactionController, stepIntervalMillis);
+
+            GridPanel gridPanel = new GridPanel(grid, cellSize, interactionController);
+
+            // Connect repaint to the controller without giving it a direct reference to GridPanel (MVC)
+            interactionController.setRepaintCallback(gridPanel::repaint);
 
             JPanel container = new JPanel(new BorderLayout());
             container.add(gridPanel, BorderLayout.CENTER); // grid takes all available space
 
             // Tool buttons pinned to the top left
-            JButton lineToolButton = createLineToolButton(gridPanel);
-            JComboBox<Shape> shapeDropdown = createShapeDropdown(gridPanel);
+            JButton lineToolButton = createLineToolButton(interactionController);
+            JComboBox<Shape> shapeDropdown = createShapeDropdown(interactionController);
             JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             toolPanel.add(lineToolButton);
             toolPanel.add(shapeDropdown);
             container.add(toolPanel, BorderLayout.NORTH);
 
             // Simulation buttons along the bottom
-            JButton startStopButton = createStartStopButton(gridPanel, simulationTimer, lineToolButton, shapeDropdown);
+            JButton startStopButton = createStartStopButton(simulationController, interactionController, lineToolButton, shapeDropdown);
             JPanel buttonPanel = new JPanel(new FlowLayout());
             buttonPanel.add(startStopButton);
-            // pass the start/stop button so that it can be updated by the other buttons
-            buttonPanel.add(createResetButton(gridPanel, simulationTimer, startStopButton, lineToolButton, shapeDropdown));
-            buttonPanel.add(createClearButton(gridPanel, simulationTimer, startStopButton, lineToolButton, shapeDropdown));
+            buttonPanel.add(createResetButton(simulationController, startStopButton, lineToolButton, shapeDropdown));
+            buttonPanel.add(createClearButton(simulationController, startStopButton, lineToolButton, shapeDropdown));
             container.add(buttonPanel, BorderLayout.SOUTH);
 
             // Set custom icon :)
@@ -70,33 +74,63 @@ public final class GameOfLifeApp {
         });
     }
 
-    // function for the button to start/stop simulation
-    private JButton createStartStopButton(GridPanel gridPanel, Timer simulationTimer, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
-
+    private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Start");
         button.addActionListener(_ -> {
-            if (simulationTimer.isRunning()) {
-                simulationTimer.stop();
-                gridPanel.setEditingEnabled(true);
-                lineToolButton.setEnabled(true);
-                shapeDropdown.setEnabled(true);
-                button.setText("Start");
-            } else {
-                this.savedSnapshot = new GridSnapshot(grid); // create a snapshot on run
-                simulationTimer.start();
-                gridPanel.setEditingEnabled(false); // can only add cells when paused
-                gridPanel.setCurrentTool(Tool.PAINT); // reset tools on sim start
+            boolean isNowRunning = simulationController.toggleSimulation();
+            if (isNowRunning) {
+                interactionController.setCurrentTool(Tool.PAINT); // reset tools on sim start
                 lineToolButton.setEnabled(false);
                 lineToolButton.setText("Line Tool");
                 shapeDropdown.setEnabled(false);
                 shapeDropdown.setSelectedIndex(0); // reset to "— None —"
                 button.setText("Stop");
+            } else {
+                lineToolButton.setEnabled(true);
+                shapeDropdown.setEnabled(true);
+                button.setText("Start");
             }
         });
         return button;
     }
 
-    private JComboBox<Shape> createShapeDropdown(GridPanel gridPanel) {
+    private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
+        JButton button = new JButton("Reset");
+        button.addActionListener(_ -> {
+            simulationController.resetSimulation();
+            lineToolButton.setEnabled(true);
+            shapeDropdown.setEnabled(true);
+            startStopButton.setText("Start");
+        });
+        return button;
+    }
+
+    private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
+        JButton button = new JButton("Clear");
+        button.addActionListener(_ -> {
+            simulationController.clearGrid();
+            lineToolButton.setEnabled(true);
+            shapeDropdown.setEnabled(true);
+            startStopButton.setText("Start");
+        });
+        return button;
+    }
+
+    private JButton createLineToolButton(GridInteractionController interactionController) {
+        JButton button = new JButton("Line Tool");
+        button.addActionListener(_ -> {
+            if (interactionController.getCurrentTool() == Tool.LINE) {
+                interactionController.setCurrentTool(Tool.PAINT);
+                button.setText("Line Tool");
+            } else {
+                interactionController.setCurrentTool(Tool.LINE);
+                button.setText("Line Tool: ON");
+            }
+        });
+        return button;
+    }
+
+    private JComboBox<Shape> createShapeDropdown(GridInteractionController interactionController) {
         JComboBox<Shape> dropdown = new JComboBox<>();
         dropdown.addItem(null);             // "— None —" sentinel
         dropdown.addItem(new GliderPreset());
@@ -115,53 +149,10 @@ public final class GameOfLifeApp {
 
         dropdown.addActionListener(_ -> {
             Shape selected = (Shape) dropdown.getSelectedItem();
-            gridPanel.setActiveShape(selected); // null clears back to PAINT
+            interactionController.setActiveShape(selected); // null clears back to PAINT
         });
 
         return dropdown;
-    }
-
-    private JButton createResetButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
-
-        JButton button = new JButton("Reset");
-        button.addActionListener(_ -> {
-            if (savedSnapshot == null) return;
-            simulationTimer.stop();
-            savedSnapshot.restore(grid);
-            gridPanel.setEditingEnabled(true);
-            lineToolButton.setEnabled(true);
-            shapeDropdown.setEnabled(true);
-            startStopButton.setText("Start");
-        });
-        return button;
-    }
-
-    private JButton createClearButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
-
-        JButton button = new JButton("Clear");
-        button.addActionListener(_ -> {
-            simulationTimer.stop();
-            grid.clear();
-            gridPanel.setEditingEnabled(true);
-            lineToolButton.setEnabled(true);
-            shapeDropdown.setEnabled(true);
-            startStopButton.setText("Start");
-        });
-        return button;
-    }
-
-    private JButton createLineToolButton(GridPanel gridPanel) {
-        JButton button = new JButton("Line Tool");
-        button.addActionListener(_ -> {
-            if (gridPanel.getCurrentTool() == Tool.LINE) {
-                gridPanel.setCurrentTool(Tool.PAINT);
-                button.setText("Line Tool");
-            } else {
-                gridPanel.setCurrentTool(Tool.LINE);
-                button.setText("Line Tool: ON");
-            }
-        });
-        return button;
     }
 
     public Grid getGrid() {
@@ -185,7 +176,6 @@ public final class GameOfLifeApp {
     public static final class Builder {
         private String title = "Conway's Game of Life";
         private Rule rule = new ConwaysRule();
-        private CellFactory cellFactory = new CellFactory();
         private GridPreset gridPreset = null;
         private Grid grid;
         private int rows = Grid.DEFAULT_MAX_ROWS;
@@ -203,11 +193,6 @@ public final class GameOfLifeApp {
 
         public Builder withRule(Rule rule) {
             this.rule = rule;
-            return this;
-        }
-
-        public Builder withCellFactory(CellFactory cellFactory) {
-            this.cellFactory = cellFactory;
             return this;
         }
 
@@ -246,7 +231,7 @@ public final class GameOfLifeApp {
             if (stepIntervalMillis <= 0) {
                 throw new IllegalArgumentException("Step interval must be positive.");
             }
-            this.grid = new Grid(cellFactory, rule, rows, columns);
+            this.grid = new Grid(rule, rows, columns);
             if (gridPreset != null) {
                 gridPreset.apply(grid); // stamps the initial pattern onto the grid
             }
@@ -254,4 +239,3 @@ public final class GameOfLifeApp {
         }
     }
 }
-

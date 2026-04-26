@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class TestGrid {
     @Test
     void constructorUsesRuleDefaultStateForAllCells() {
-        Grid grid = new Grid(new CellFactory(), new FixedStateRule(StateSet.ROCK_PAPER_SCISSORS), 1, 1);
+        Grid grid = new Grid(new FixedStateRule(StateSet.ROCK_PAPER_SCISSORS), 1, 1);
 
         assertEquals(State.ROCK, grid.getState(0, 0));
         assertEquals(State.ROCK, grid.getState(1, 1));
@@ -17,7 +17,7 @@ public class TestGrid {
 
     @Test
     void setStateRejectsStateOutsideRuleStateSet() {
-        Grid grid = new Grid(new CellFactory(), new FixedStateRule(StateSet.CONWAYS_LIFE), 1, 1);
+        Grid grid = new Grid(new FixedStateRule(StateSet.CONWAYS_LIFE), 1, 1);
 
         assertThrows(IllegalArgumentException.class, () -> grid.setState(0, 0, State.ROCK));
     }
