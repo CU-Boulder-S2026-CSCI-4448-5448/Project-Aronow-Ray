@@ -27,7 +27,7 @@ public class TestSimulationController {
     }
 
     @Test
-    void resetRestoresSavedSnapshot() {
+    void resetRestoresSavedSnapshot() { //Also in TestGridSnapshot
         Grid grid = new Grid(new ConwaysRule(), 1, 1);
         GridInteractionController gridInteractionController = new GridInteractionController(grid, 10);
         SimulationController simulationController =
