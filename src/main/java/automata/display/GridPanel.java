@@ -11,15 +11,12 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class GridPanel extends JPanel implements GridObserver {
     private final GridSubject grid;
     private final int columns;
     private final int rows;
     private final int cellSize;
-    private boolean editingEnabled = true;
 
     public GridPanel(Grid grid) {
         this(grid, 8);
@@ -32,42 +29,6 @@ public class GridPanel extends JPanel implements GridObserver {
         this.rows = grid.getMaxRows() + 1;
         setPreferredSize(new Dimension(columns * cellSize, rows * cellSize));
         grid.addObserver(this);
-
-        // listener to detect user clicks/click+drags for interacting with UI
-        MouseAdapter mouseAdapter = new MouseAdapter() {
-            private State dragTargetState;
-
-            // single click detection
-            @Override
-            public void mousePressed(MouseEvent e) {
-                if (!editingEnabled) return;
-                int row = e.getY() / cellSize;
-                int col = e.getX() / cellSize;
-                if (!grid.isInBounds(row, col)) return;
-                State current = grid.getState(row, col);
-                dragTargetState = (current == State.ALIVE) ? State.DEAD : State.ALIVE;
-                grid.setState(row, col, dragTargetState);
-            }
-
-            // click and drag detection so we paint all cells passed over
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                if (!editingEnabled) return;
-                int row = e.getY() / cellSize;
-                int col = e.getX() / cellSize;
-                if (!grid.isInBounds(row, col)) return;
-                grid.setState(row, col, dragTargetState);
-            }
-        };
-
-        // register listeners
-        addMouseListener(mouseAdapter);
-        addMouseMotionListener(mouseAdapter);
-
-    }
-
-    void setEditingEnabled(boolean editingEnabled) {
-        this.editingEnabled = editingEnabled;
     }
 
     @Override
