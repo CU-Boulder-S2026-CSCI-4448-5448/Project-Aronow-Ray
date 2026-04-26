@@ -3,6 +3,8 @@ package automata.display;
 import automata.controller.GridInteractionController;
 import automata.controller.SimulationController;
 import automata.Grid;
+import automata.GridSnapshot;
+import automata.Tool;
 import automata.presets.GridPreset;
 import automata.rules.ConwaysRule;
 import automata.rules.Rule;
@@ -48,6 +50,19 @@ public final class GameOfLifeApp {
             // pass the start/stop button so that it can be updated by the other buttons
             buttonPanel.add(createResetButton(simulationController, startStopButton));
             buttonPanel.add(createClearButton(simulationController, startStopButton));
+            // Tool buttons pinned to the top left
+            JButton lineToolButton = createLineToolButton(gridPanel);
+            JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            toolPanel.add(lineToolButton);
+            container.add(toolPanel, BorderLayout.NORTH);
+
+            // Simulation buttons along the bottom
+            JButton startStopButton = createStartStopButton(gridPanel, simulationTimer, lineToolButton);
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            buttonPanel.add(startStopButton);
+            // pass the start/stop button so that it can be updated by the other buttons
+            buttonPanel.add(createResetButton(gridPanel, simulationTimer, startStopButton, lineToolButton));
+            buttonPanel.add(createClearButton(gridPanel, simulationTimer, startStopButton, lineToolButton));
             container.add(buttonPanel, BorderLayout.SOUTH);
 
             // Set custom icon :)
@@ -62,29 +77,65 @@ public final class GameOfLifeApp {
     }
 
     // function for the button to start/stop simulation
-    private JButton createStartStopButton(SimulationController simulationController) {
+    private JButton createStartStopButton(GridPanel gridPanel, Timer simulationTimer, JButton lineToolButton) {
+
         JButton button = new JButton("Start");
-        button.addActionListener(event -> {
-            boolean running = simulationController.toggleSimulation();
-            button.setText(running ? "Stop" : "Start");
+        button.addActionListener(_ -> {
+            if (simulationTimer.isRunning()) {
+                simulationTimer.stop();
+                gridPanel.setEditingEnabled(true);
+                lineToolButton.setEnabled(true);
+                button.setText("Start");
+            } else {
+                this.savedSnapshot = new GridSnapshot(grid); // create a snapshot on run
+                simulationTimer.start();
+                gridPanel.setEditingEnabled(false); // can only add cells when paused
+                gridPanel.setCurrentTool(Tool.PAINT); // reset line tool on sim start
+                lineToolButton.setEnabled(false);
+                lineToolButton.setText("Line Tool");
+                button.setText("Stop");
+            }
         });
         return button;
     }
 
-    private JButton createResetButton(SimulationController simulationController, JButton startStopButton) {
+    private JButton createResetButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton, JButton lineToolButton) {
+
         JButton button = new JButton("Reset");
-        button.addActionListener(event -> {
-            simulationController.resetSimulation();
+        button.addActionListener(_ -> {
+            if (savedSnapshot == null) return;
+            simulationTimer.stop();
+            savedSnapshot.restore(grid);
+            gridPanel.setEditingEnabled(true);
+            lineToolButton.setEnabled(true);
             startStopButton.setText("Start");
         });
         return button;
     }
 
-    private JButton createClearButton(SimulationController simulationController, JButton startStopButton) {
+    private JButton createClearButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton, JButton lineToolButton) {
+
         JButton button = new JButton("Clear");
-        button.addActionListener(event -> {
-            simulationController.clearGrid();
+        button.addActionListener(_ -> {
+            simulationTimer.stop();
+            grid.clear();
+            gridPanel.setEditingEnabled(true);
+            lineToolButton.setEnabled(true);
             startStopButton.setText("Start");
+        });
+        return button;
+    }
+
+    private JButton createLineToolButton(GridPanel gridPanel) {
+        JButton button = new JButton("Line Tool");
+        button.addActionListener(_ -> {
+            if (gridPanel.getCurrentTool() == Tool.LINE) {
+                gridPanel.setCurrentTool(Tool.PAINT);
+                button.setText("Line Tool");
+            } else {
+                gridPanel.setCurrentTool(Tool.LINE);
+                button.setText("Line Tool: ON");
+            }
         });
         return button;
     }
