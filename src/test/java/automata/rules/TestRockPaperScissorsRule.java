@@ -24,8 +24,14 @@ public class TestRockPaperScissorsRule {
         RockPaperScissorsRule rule = new RockPaperScissorsRule();
         Grid grid = new Grid(rule, 2, 2);
         grid.setState(1, 1, State.ROCK);
+        grid.setState(0, 0, State.PAPER);
         grid.setState(0, 1, State.PAPER);
+        grid.setState(0, 2, State.PAPER);
         grid.setState(1, 0, State.PAPER);
+        grid.setState(1, 2, State.PAPER);
+        grid.setState(2, 0, State.PAPER);
+        grid.setState(2, 1, State.PAPER);
+        grid.setState(2, 2, State.PAPER);
 
         assertEquals(State.PAPER, rule.getNextStateForCell(grid, 1, 1));
     }

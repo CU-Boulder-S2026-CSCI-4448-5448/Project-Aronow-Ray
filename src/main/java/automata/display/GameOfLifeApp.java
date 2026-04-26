@@ -9,6 +9,7 @@ import automata.presets.GliderPreset;
 import automata.presets.GridPreset;
 import automata.presets.Shape;
 import automata.rules.ConwaysRule;
+import automata.rules.RockPaperScissorsRule;
 import automata.rules.Rule;
 
 import javax.swing.*;
@@ -17,6 +18,9 @@ import java.util.Objects;
 
 public final class GameOfLifeApp {
     private static final int DEFAULT_STEP_INTERVAL_MILLIS = 200; // Changed from 1_000
+    private static final int DEFAULT_GRID_HEIGHT = 50;
+    private static final int DEFAULT_GRID_WIDTH = 50;
+    private static final int DEFAULT_CELL_SIZE = 10;
 
     private final String title;
     private final Grid grid;
@@ -76,7 +80,7 @@ public final class GameOfLifeApp {
 
     private JButton createStartStopButton(SimulationController simulationController, GridInteractionController interactionController, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Start");
-        button.addActionListener(_ -> {
+        button.addActionListener(event -> {
             boolean isNowRunning = simulationController.toggleSimulation();
             if (isNowRunning) {
                 interactionController.setCurrentTool(Tool.PAINT); // reset tools on sim start
@@ -96,7 +100,7 @@ public final class GameOfLifeApp {
 
     private JButton createResetButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Reset");
-        button.addActionListener(_ -> {
+        button.addActionListener(event -> {
             simulationController.resetSimulation();
             lineToolButton.setEnabled(true);
             shapeDropdown.setEnabled(true);
@@ -107,7 +111,7 @@ public final class GameOfLifeApp {
 
     private JButton createClearButton(SimulationController simulationController, JButton startStopButton, JButton lineToolButton, JComboBox<Shape> shapeDropdown) {
         JButton button = new JButton("Clear");
-        button.addActionListener(_ -> {
+        button.addActionListener(event -> {
             simulationController.clearGrid();
             lineToolButton.setEnabled(true);
             shapeDropdown.setEnabled(true);
@@ -118,7 +122,7 @@ public final class GameOfLifeApp {
 
     private JButton createLineToolButton(GridInteractionController interactionController) {
         JButton button = new JButton("Line Tool");
-        button.addActionListener(_ -> {
+        button.addActionListener(event -> {
             if (interactionController.getCurrentTool() == Tool.LINE) {
                 interactionController.setCurrentTool(Tool.PAINT);
                 button.setText("Line Tool");
@@ -146,7 +150,7 @@ public final class GameOfLifeApp {
             }
         });
 
-        dropdown.addActionListener(_ -> {
+        dropdown.addActionListener(event -> {
             Shape selected = (Shape) dropdown.getSelectedItem();
             interactionController.setActiveShape(selected); // null clears back to PAINT
         });
@@ -162,36 +166,41 @@ public final class GameOfLifeApp {
         return new Builder();
     }
 
-    public static void main(String[] args) {
-        GameOfLifeApp app = GameOfLifeApp.builder().build();
-//        app.getGrid().setState(49, 50, State.ALIVE);
-//        app.getGrid().setState(50, 51, State.ALIVE);
-//        app.getGrid().setState(51, 49, State.ALIVE);
-//        app.getGrid().setState(51, 50, State.ALIVE);
-//        app.getGrid().setState(51, 51, State.ALIVE);
+    static void main(String[] args) {
+        GameOfLifeApp app = GameOfLifeApp
+                .builder()
+                .withRows(DEFAULT_GRID_HEIGHT)
+                .withColumns(DEFAULT_GRID_WIDTH)
+                .withConwaysRule()
+                .withCellSize(DEFAULT_CELL_SIZE)
+                .withStepIntervalMillis(DEFAULT_STEP_INTERVAL_MILLIS)
+                //.withRockPaperScissorsRule() uncomment to use instead
+                .build();
         app.show();
     }
 
     public static final class Builder {
-        private String title = "Conway's Game of Life";
-        private Rule rule = new ConwaysRule();
+        private String title = null;
+        private Rule rule = null;
         private GridPreset gridPreset = null;
         private Grid grid;
-        private int rows = Grid.DEFAULT_MAX_ROWS;
-        private int columns = Grid.DEFAULT_MAX_COLUMNS;
-        private int cellSize = 8;
-        private int stepIntervalMillis = DEFAULT_STEP_INTERVAL_MILLIS;
+        private int rows = -1;
+        private int columns = -1;
+        private int cellSize = -1;
+        private int stepIntervalMillis = -1;
 
         private Builder() {
         }
 
-        public Builder withTitle(String title) {
-            this.title = title;
+        public Builder withConwaysRule() {
+            this.rule = new ConwaysRule();
+            this.title = "Conway's Game of Life";
             return this;
         }
 
-        public Builder withRule(Rule rule) {
-            this.rule = rule;
+        public Builder withRockPaperScissorsRule() {
+            this.rule = new RockPaperScissorsRule();
+            this.title = "Rock Paper Scissors";
             return this;
         }
 
@@ -221,14 +230,14 @@ public final class GameOfLifeApp {
         }
 
         public GameOfLifeApp build() {
-            if (rows < 0 || columns < 0) {
-                throw new IllegalArgumentException("Grid dimensions must be non-negative.");
+            if (rows <= 0 || columns <= 0) {
+                throw new IllegalArgumentException("Grid dimensions must be set and positive.");
             }
             if (cellSize <= 0) {
-                throw new IllegalArgumentException("Cell size must be positive.");
+                throw new IllegalArgumentException("Cell size must be set and positive.");
             }
             if (stepIntervalMillis <= 0) {
-                throw new IllegalArgumentException("Step interval must be positive.");
+                throw new IllegalArgumentException("Step interval must be set and positive.");
             }
             this.grid = new Grid(rule, rows, columns);
             if (gridPreset != null) {
