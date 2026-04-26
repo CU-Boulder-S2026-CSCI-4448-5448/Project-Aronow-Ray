@@ -4,7 +4,13 @@ import automata.Grid;
 import automata.State;
 import automata.StateSet;
 
-public class RockPaperScissorsRule implements Rule{
+public class RockPaperScissorsRule implements Rule {
+
+    @Override
+    public String getName() {
+        return "RockPaperScissors";
+    }
+
     @Override
     public State getNextStateForCell(Grid grid, int xLocation, int yLocation) {
         int numScissors = 0;

@@ -8,6 +8,14 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestRockPaperScissorsRule {
+
+    @Test
+    void testGetName() {
+        RockPaperScissorsRule rule = new RockPaperScissorsRule();
+        rule.getName();
+        assertEquals("RockPaperScissors", rule.getName());
+    }
+
     @Test
     void scissorsBecomesRockWhenOutnumberedByRocks() {
         RockPaperScissorsRule rule = new RockPaperScissorsRule();

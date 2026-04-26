@@ -40,6 +40,11 @@ public class TestGrid {
         }
 
         @Override
+        public String getName() {
+            return "FixedStateRule";
+        }
+
+        @Override
         public State getNextStateForCell(Grid grid, int xLocation, int yLocation) {
             return stateSet.getDefaultState();
         }
