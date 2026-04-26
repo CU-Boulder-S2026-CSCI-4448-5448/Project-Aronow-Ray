@@ -18,17 +18,24 @@ public class RockPaperScissorsRule implements Rule{
 
                 int neighborRow = xLocation + rowOffset;
                 int neighborColumn = yLocation + columnOffset;
+                if (!grid.isInBounds(neighborRow, neighborColumn)) {
+                    continue;
+                }
+
                 Cell neighborCell = grid.getCell(neighborRow, neighborColumn);
                 State neighborState = neighborCell.getState();
-                if (grid.isInBounds(neighborRow, neighborColumn)) {
-                    switch (neighborState) {
-                        case SCISSORS:
-                            numScissors++;
-                        case ROCK:
-                            numRocks++;
-                        case PAPER:
-                            numPapers++;
-                    }
+                switch (neighborState) {
+                    case SCISSORS:
+                        numScissors++;
+                        break;
+                    case ROCK:
+                        numRocks++;
+                        break;
+                    case PAPER:
+                        numPapers++;
+                        break;
+                    default:
+                        break;
                 }
             }
         }
