@@ -27,19 +27,6 @@ public final class GameOfLifeApp {
     private final int cellSize;
     private final int stepIntervalMillis;
 
-    static void main(String[] args) {
-        GameOfLifeApp app = GameOfLifeApp
-                .builder()
-                .withRows(DEFAULT_GRID_HEIGHT)
-                .withColumns(DEFAULT_GRID_WIDTH)
-                .withConwaysRule()
-                .withCellSize(DEFAULT_CELL_SIZE)
-                .withStepIntervalMillis(DEFAULT_STEP_INTERVAL_MILLIS)
-                //.withRockPaperScissorsRule()
-                .build();
-        app.show();
-    }
-
     private GameOfLifeApp(Builder builder) {
         this.title = builder.title;
         this.grid = builder.grid;
@@ -232,7 +219,41 @@ public final class GameOfLifeApp {
         return new Builder();
     }
 
+    static void main() {
+        Rule[] rules = { new ConwaysRule(), new RockPaperScissorsRule() };
+        String[] ruleNames = new String[rules.length];
+        for (int i = 0; i < rules.length; i++) {
+            ruleNames[i] = rules[i].getName();
+        }
 
+        String choice = (String) JOptionPane.showInputDialog(
+                null,
+                "Select a rule:",
+                "Game of Life",
+                JOptionPane.PLAIN_MESSAGE, // no warning symbol or anything, just a msg
+                null,
+                ruleNames,   // all names of modes
+                ruleNames[0] // initially selected option
+        );
+        if (choice == null) return; // user closed the dialog without choosing
+
+        Rule selected = null;
+        for (int i = 0; i < ruleNames.length; i++) {
+            if (ruleNames[i].equals(choice)) {
+                selected = rules[i];
+                break;
+            }
+        }
+
+        GameOfLifeApp.builder()
+                .withRows(DEFAULT_GRID_HEIGHT)
+                .withColumns(DEFAULT_GRID_WIDTH)
+                .withRule(selected)
+                .withCellSize(DEFAULT_CELL_SIZE)
+                .withStepIntervalMillis(DEFAULT_STEP_INTERVAL_MILLIS)
+                .build()
+                .show();
+    }
 
     public static final class Builder {
         private String title = null;
@@ -247,16 +268,18 @@ public final class GameOfLifeApp {
         private Builder() {
         }
 
-        public Builder withConwaysRule() {
-            this.rule = new ConwaysRule();
-            this.title = "Conway's Game of Life";
+        public Builder withRule(Rule rule) {
+            this.rule = Objects.requireNonNull(rule, "rule");
+            this.title = rule.getName(); // Rule needs getName()
             return this;
         }
 
+        public Builder withConwaysRule() {
+            return withRule(new ConwaysRule());
+        }
+
         public Builder withRockPaperScissorsRule() {
-            this.rule = new RockPaperScissorsRule();
-            this.title = "Rock Paper Scissors";
-            return this;
+            return withRule(new RockPaperScissorsRule());
         }
 
         public Builder withRows(int rows) {
