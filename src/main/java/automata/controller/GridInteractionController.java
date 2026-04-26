@@ -5,6 +5,7 @@ import automata.State;
 import automata.Tool;
 import automata.presets.Shape;
 
+import javax.swing.SwingUtilities;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -32,6 +33,9 @@ public class GridInteractionController extends MouseAdapter {
         this.cellSize = cellSize;
     }
 
+    // MVC: the controller needs to trigger repaints but shouldn't hold a direct reference to the view.
+    // Instead, the view passes in a callback (gridPanel::repaint) so the controller can notify it
+    // without being coupled to it.
     public void setRepaintCallback(Runnable repaintCallback) {
         this.repaintCallback = Objects.requireNonNull(repaintCallback, "repaintCallback");
     }
@@ -42,20 +46,22 @@ public class GridInteractionController extends MouseAdapter {
             return;
         }
 
+        // convert pixel coordinates to grid coordinates
         int row = event.getY() / cellSize;
         int column = event.getX() / cellSize;
+        // ignore clicks outside the grid
         if (!grid.isInBounds(row, column)) {
             return;
         }
 
         if (currentTool == Tool.LINE) {
             if (lineStart == null) {
-                // first click — set the start point
+                // first click: set the start point
                 lineStart = new int[]{row, column};
                 linePreview = getLineCells(row, column, row, column);
                 repaintCallback.run();
             } else {
-                // second click — apply the preview to the grid
+                // second click: apply the preview to the grid
                 for (int[] cell : linePreview) {
                     grid.setState(cell[0], cell[1], State.ALIVE);
                 }
@@ -70,9 +76,15 @@ public class GridInteractionController extends MouseAdapter {
                 }
             }
         } else {
-            // paint tool — toggle and track drag state
-            State current = grid.getState(row, column);
-            dragTargetState = current == State.ALIVE ? State.DEAD : State.ALIVE;
+            // paint tool. Left click toggles, right click erases
+            if (SwingUtilities.isRightMouseButton(event)) {
+                dragTargetState = State.DEAD;
+            } else {
+                // check what the clicked cell currently is
+                State current = grid.getState(row, column);
+                // toggle: if it was alive, drag will erase. If dead, drag will paint.
+                dragTargetState = current == State.ALIVE ? State.DEAD : State.ALIVE;
+            }
             grid.setState(row, column, dragTargetState);
         }
     }
