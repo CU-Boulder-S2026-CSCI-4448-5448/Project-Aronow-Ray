@@ -10,4 +10,8 @@ public interface GridSubject {
     int getMaxRows();
 
     int getMaxColumns();
+
+    void setState(int row, int col, State state);
+
+    boolean isInBounds(int row, int column);
 }

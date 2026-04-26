@@ -2,25 +2,26 @@ package automata.display;
 
 import automata.CellFactory;
 import automata.Grid;
-import automata.State;
+import automata.GridSnapshot;
+import automata.presets.GridPreset;
 import automata.rules.ConwaysRule;
 import automata.rules.Rule;
 
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
+import javax.swing.*;
+import java.awt.*;
 
 public final class GameOfLifeApp {
-    private static final int DEFAULT_STEP_INTERVAL_MILLIS = 1_000;
+    private static final int DEFAULT_STEP_INTERVAL_MILLIS = 200; // Changed from 1_000
 
     private final String title;
     private final Grid grid;
+    private GridSnapshot savedSnapshot;
     private final int cellSize;
     private final int stepIntervalMillis;
 
     private GameOfLifeApp(Builder builder) {
         this.title = builder.title;
-        this.grid = new Grid(builder.cellFactory, builder.rule, builder.rows, builder.columns);
+        this.grid = builder.grid;
         this.cellSize = builder.cellSize;
         this.stepIntervalMillis = builder.stepIntervalMillis;
     }
@@ -28,15 +29,72 @@ public final class GameOfLifeApp {
     public void show() {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame(title);
+            Timer simulationTimer = new Timer(stepIntervalMillis, event -> grid.updateAllCells());
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.add(new GridPanel(grid, cellSize));
+
+            GridPanel gridPanel = new GridPanel(grid, cellSize);
+
+            JPanel container = new JPanel(new BorderLayout());
+            container.add(gridPanel, BorderLayout.CENTER); // grid takes all available space
+
+            // Add these buttons to a panel at the bottom of the grid
+            JButton startStopButton = createStartStopButton(gridPanel, simulationTimer);
+            JPanel buttonPanel = new JPanel(new FlowLayout());
+            buttonPanel.add(startStopButton);
+            // pass the start/stop button so that it can be updated by the other buttons
+            buttonPanel.add(createResetButton(gridPanel, simulationTimer, startStopButton));
+            buttonPanel.add(createClearButton(gridPanel, simulationTimer, startStopButton));
+            container.add(buttonPanel, BorderLayout.SOUTH);
+
+            frame.add(container);
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
-
-            Timer simulationTimer = new Timer(stepIntervalMillis, event -> grid.updateAllCells());
-            simulationTimer.start();
         });
+    }
+
+    // function for the button to start/stop simulation
+    private JButton createStartStopButton(GridPanel gridPanel, Timer simulationTimer) {
+
+        JButton button = new JButton("Start");
+        button.addActionListener(_ -> {
+            if (simulationTimer.isRunning()) {
+                simulationTimer.stop();
+                gridPanel.setEditingEnabled(true);
+                button.setText("Start");
+            } else {
+                this.savedSnapshot = new GridSnapshot(grid); // create a snapshot on run
+                simulationTimer.start();
+                gridPanel.setEditingEnabled(false); // can only add cells when paused
+                button.setText("Stop");
+            }
+        });
+        return button;
+    }
+
+    private JButton createResetButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton) {
+
+        JButton button = new JButton("Reset");
+        button.addActionListener(_ -> {
+            if (savedSnapshot == null) return;
+            simulationTimer.stop();
+            savedSnapshot.restore(grid);
+            gridPanel.setEditingEnabled(true);
+            startStopButton.setText("Start");
+        });
+        return button;
+    }
+
+    private JButton createClearButton(GridPanel gridPanel, Timer simulationTimer, JButton startStopButton) {
+
+        JButton button = new JButton("Clear");
+        button.addActionListener(_ -> {
+            simulationTimer.stop();
+            grid.clear();
+            gridPanel.setEditingEnabled(true);
+            startStopButton.setText("Start");
+        });
+        return button;
     }
 
     public Grid getGrid() {
@@ -49,11 +107,11 @@ public final class GameOfLifeApp {
 
     public static void main(String[] args) {
         GameOfLifeApp app = GameOfLifeApp.builder().build();
-        app.getGrid().setState(49, 50, State.ALIVE);
-        app.getGrid().setState(50, 51, State.ALIVE);
-        app.getGrid().setState(51, 49, State.ALIVE);
-        app.getGrid().setState(51, 50, State.ALIVE);
-        app.getGrid().setState(51, 51, State.ALIVE);
+//        app.getGrid().setState(49, 50, State.ALIVE);
+//        app.getGrid().setState(50, 51, State.ALIVE);
+//        app.getGrid().setState(51, 49, State.ALIVE);
+//        app.getGrid().setState(51, 50, State.ALIVE);
+//        app.getGrid().setState(51, 51, State.ALIVE);
         app.show();
     }
 
@@ -61,6 +119,8 @@ public final class GameOfLifeApp {
         private String title = "Conway's Game of Life";
         private Rule rule = new ConwaysRule();
         private CellFactory cellFactory = new CellFactory();
+        private GridPreset gridPreset = null;
+        private Grid grid;
         private int rows = Grid.DEFAULT_MAX_ROWS;
         private int columns = Grid.DEFAULT_MAX_COLUMNS;
         private int cellSize = 8;
@@ -104,6 +164,11 @@ public final class GameOfLifeApp {
             return this;
         }
 
+        public Builder withInitialState(GridPreset preset) {
+            this.gridPreset = preset;
+            return this;
+        }
+
         public GameOfLifeApp build() {
             if (rows < 0 || columns < 0) {
                 throw new IllegalArgumentException("Grid dimensions must be non-negative.");
@@ -113,6 +178,10 @@ public final class GameOfLifeApp {
             }
             if (stepIntervalMillis <= 0) {
                 throw new IllegalArgumentException("Step interval must be positive.");
+            }
+            this.grid = new Grid(cellFactory, rule, rows, columns);
+            if (gridPreset != null) {
+                gridPreset.apply(grid); // stamps the initial pattern onto the grid
             }
             return new GameOfLifeApp(this);
         }

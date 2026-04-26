@@ -54,6 +54,13 @@ public class Grid implements GridSubject {
         }
     }
 
+    // clear all cells
+    public void clear() {
+        for (int row = 0; row <= maxRows; row++)
+            for (int col = 0; col <= maxColumns; col++)
+                setState(row, col, State.DEAD);
+    }
+
     public Cell getCell(int row, int column) {
         validatePosition(row, column);
         return grid[row][column];
