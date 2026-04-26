@@ -58,13 +58,4 @@ public class CloverleafPreset implements GridPreset, Shape {
                 new int[]{10,  5}
         );
     }
-
-    @Override
-    public void apply(Grid grid) {
-        int centerRow = grid.getMaxRows() / 2;
-        int centerCol = grid.getMaxColumns() / 2;
-        for (int[] cell : getRelativeCells()) {
-            grid.setState(centerRow + cell[0], centerCol + cell[1], State.ALIVE);
-        }
-    }
 }
